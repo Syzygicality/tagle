@@ -4,6 +4,7 @@ export type Storage = {
   artists: string[],
   general: string[],
   meta: string[],
+  other: string[],
   savedSearches: SavedSearch[]
 }
 

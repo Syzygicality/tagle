@@ -99,37 +99,33 @@ function QuerySection({ searches }: QuerySectionProps ) {
 }
 
 export default function Home() {
-  const [storage, setStorage] = useState<Storage>(() => {
-    if (typeof window === "undefined") return {
-      copyright: [],
-      characters: [],
-      artists: [],
-      general: [],
-      meta: [],
-      savedSearches: [],
-    };
+  const defaults: Storage = {
+    copyright: [],
+    characters: [],
+    artists: [],
+    general: [],
+    meta: [],
+    other: [],
+    savedSearches: [],
+  };
+
+  const [storage, setStorage] = useState<Storage>(defaults);
+
+  useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {
-      copyright: [],
-      characters: [],
-      artists: [],
-      general: [],
-      meta: [],
-      savedSearches: [],
-    };
-  })
+    if (stored) setStorage({ ...defaults, ...JSON.parse(stored) });
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
   }, [storage])
 
   const addTag = (tag: string, category: keyof Omit<Storage, "savedSearches">) => {
-    if (!storage[category].includes(tag)) {
-      setStorage(prev => ({
-        ...prev,
-        [category]: [...prev[category], tag]
-      }));
-    }
+    setStorage(prev => {
+      const current = prev[category] ?? [];
+      if (current.includes(tag)) return prev;
+      return { ...prev, [category]: [...current, tag] };
+    });
   }
 
   const removeTag = (tag: string, category: keyof Omit<Storage, "savedSearches">) => {
@@ -151,7 +147,7 @@ export default function Home() {
   const [excluding, setExcluding] = useState(false);
 
   useEffect(() => {
-    const categories = ["copyright", "characters", "artists", "general", "meta"] as const;
+    const categories = ["copyright", "characters", "artists", "general", "meta", "other"] as const;
     if (excluding) {
       setStorage(prev => {
         const updated = { ...prev };
@@ -175,14 +171,16 @@ export default function Home() {
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
+    const temp = value.trim().toLowerCase().replaceAll(" ", "_") 
     const params = new URLSearchParams({
       user_id: USER_ID!,
       api_key: API_KEY!,
-      name: value.trim().toLowerCase().replaceAll(" ", "_"),
+      name: temp.trim().toLowerCase().replaceAll(" ", "_"),
       page: "dapi",
       q: "index",
       s: "tag"
     })
+    
     setValue("")
     const response = await fetch(`https://${API_URL}/index.php?${params.toString()}`)
     const text = await response.text()
@@ -191,13 +189,21 @@ export default function Home() {
     const tag = xml.querySelector("tag")
     const nameAttr = tag?.getAttribute("name")
     const typeAttr = tag?.getAttribute("type")
-    if (!tag || typeAttr === "2" || typeAttr === null) return
-    const category = CATEGORIES[parseInt(typeAttr!)] as keyof Omit<Storage, "savedSearches">
-    addTag(nameAttr!, category)
+    if (!tag) {
+      addTag(temp, "other")
+      return
+    }
+    const VALID = ["general", "artists", "copyright", "characters", "meta"] as const
+    const category = CATEGORIES[parseInt(typeAttr!)]
+    if (!category || !(VALID as readonly string[]).includes(category)) {
+      addTag(nameAttr ?? temp, "other")
+      return
+    }
+    addTag(nameAttr!, category as keyof Omit<Storage, "savedSearches">)
   };
 
   return (
-    <div className="relative w-screen h-screen bg-white overflow-hidden max-w-6xl mx-auto flex flex-col gap-4">
+    <div className="relative w-screen min-h-screen bg-white overflow-y-auto max-w-6xl mx-auto flex flex-col gap-4">
       <div className="mt-4 mx-4 flex justify-between">
         <h1 className="font-bold text-6xl">Tagle</h1>
         <button className="bg-black text-white p-2 rounded-2xl transition-all duration-150 hover:bg-gray-800 active:scale-95">Dark Mode</button>
@@ -250,14 +256,18 @@ export default function Home() {
             onRemove={(tag: string) => removeTag(tag, "general")}
             onReorder={(from, to) => reorderTags("general", from, to)}
           />
-          <div className="md:col-span-2">
-            <TagSection
-              category="Meta"
-              tags={storage.meta}
-              onRemove={(tag: string) => removeTag(tag, "meta")}
-              onReorder={(from, to) => reorderTags("meta", from, to)}
-            />
-          </div>
+          <TagSection
+            category="Meta"
+            tags={storage.meta}
+            onRemove={(tag: string) => removeTag(tag, "meta")}
+            onReorder={(from, to) => reorderTags("meta", from, to)}
+          />
+          <TagSection
+            category="Other"
+            tags={storage.other}
+            onRemove={(tag: string) => removeTag(tag, "other")}
+            onReorder={(from, to) => reorderTags("other", from, to)}
+          />
         </div>
         <QuerySection searches={storage.savedSearches} />
       </div>

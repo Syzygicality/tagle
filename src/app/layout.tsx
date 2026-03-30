@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Tagle",
-  description: "Tag management",
+  description: "Tag management and enhanced search site",
 };
 
 export default function RootLayout({
