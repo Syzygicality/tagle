@@ -2,6 +2,19 @@
   "name": "tagle",
   "version": "0.1.0",
   "private": true,
+  "description": "",
+  "homepage": "https://github.com/Syzygicality/tagle#readme",
+  "bugs": {
+    "url": "https://github.com/Syzygicality/tagle/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Syzygicality/tagle.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +22,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "next": "16.2.1",
+    "next": "^16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
