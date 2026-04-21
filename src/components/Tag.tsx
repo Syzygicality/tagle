@@ -1,8 +1,12 @@
-interface TagSectionProps {
+interface TagProps {
   name: string;
-  tags: string[];
+  disabled: boolean;
 }
 
-export default function TagSection({ name, tags }: TagSectionProps) {
-  return <div></div>;
+export default function Tag({ name, disabled }: TagProps) {
+  return (
+    <button className="" disabled={disabled}>
+      {name}
+    </button>
+  );
 }
