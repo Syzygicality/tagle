@@ -10,8 +10,3 @@
 body {
   font-family: var(--font-sans);
 }
-
-.background {
-  @apply bg-white min-h-screen flex;
-}
-
