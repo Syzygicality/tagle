@@ -11,7 +11,7 @@ export default function TagSection({ name, tags, query }: TagSectionProps) {
     return (
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => (
-          <Tag name={tag} disabled={true} />
+          <Tag key={tag} name={tag} disabled={true} />
         ))}
       </div>
     );
@@ -21,7 +21,7 @@ export default function TagSection({ name, tags, query }: TagSectionProps) {
       <h3 className="">{name}</h3>
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => (
-          <Tag name={tag} disabled={false} />
+          <Tag key={tag} name={tag} disabled={false} />
         ))}
       </div>
     </div>

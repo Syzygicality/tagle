@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       name: name,
       page: "dapi",
       s: "tag",
-      q: "index"
+      q: "index",
     });
     const apiRes = await fetch("https://" + env.apiUrl + `/index.php?${params}`);
     if (!apiRes.ok) throw new Error(`Upstream error: ${apiRes.status}`);
@@ -21,9 +21,11 @@ export async function GET(request: NextRequest) {
       ignoreAttributes: false,
       attributeNamePrefix: "",
       isArray: (name) => name === "tag",
-    })
-    const data = parser.parse(xml);
-    return NextResponse.json(data["tags"]["tag"][0], {status: 200});
+    });
+    let data = parser.parse(xml);
+    data = data["tags"]["tag"][0];
+    data["type"] = parseInt(data["type"]);
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
