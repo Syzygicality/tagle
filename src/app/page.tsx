@@ -1,47 +1,22 @@
 "use client";
 
 import TagSection from "@/components/TagSection";
+import Tag from "@/components/Tag";
 import { useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-
-const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"];
-
-type CategoryMap = Record<string, string[]>;
-
-const INITIAL: CategoryMap = {
-  general: [],
-  artists: [],
-  other: [],
-  copyright: [],
-  characters: [],
-  meta: [],
-};
-
-interface TagResponse {
-  type: number;
-  name: string;
-}
+import { useTagle } from "@/hooks/useTagle";
 
 export default function Home() {
-  const [value, setValue] = useState("");
-  const [categoryMap, setCategoryMap, hydrated] = useLocalStorage<CategoryMap>("tags", INITIAL);
-
-  const handleSubmit = async () => {
-    if (!value) return;
-    const res = await fetch(`/api/tag?name=${value}`);
-
-    const data = (await res.json()) as TagResponse;
-    const category = CATEGORIES[data.type] || "other";
-
-    if (!categoryMap[category].includes(value)) {
-      setCategoryMap({
-        ...categoryMap,
-        [category]: [...categoryMap[category], value],
-      });
-    }
-
-    setValue("");
-  };
+  const {
+    value,
+    setValue,
+    categoryMap,
+    setCategoryMap,
+    hydrated,
+    selectedTags,
+    setSelectedtags,
+    handleSubmit,
+  } = useTagle();
 
   return (
     <div className="flex min-h-screen min-w-full flex-col items-center gap-4 bg-white p-4">
@@ -58,11 +33,18 @@ export default function Home() {
               if (e.key === "Enter") handleSubmit();
             }}
           />
-          <input type="text" placeholder="Selected tags will appear here" className="" disabled />
+          <div className="flex flex-wrap gap-2 rounded border p-2">
+            {selectedTags.length > 0 ? (
+              selectedTags.map((tag) => <Tag key={tag} name={tag} disabled={true} />)
+            ) : (
+              <span className="text-gray-400">Selected tags will appear here</span>
+            )}
+          </div>
           <div className="flex gap-4">
             <button className="grow">Save</button>
             <button className="grow-4">Go</button>
           </div>
+          <button className="">Exclude</button>
         </div>
         <div className="grid grow-4 grid-cols-3 gap-4">
           {hydrated && (
