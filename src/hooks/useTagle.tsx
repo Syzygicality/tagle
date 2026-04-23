@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
+import { useHydrated } from "./useHydrated";
 
-const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"];
+const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"] as const;
 
-type CategoryMap = Record<string, string[]>;
+type Category = (typeof CATEGORIES)[number];
+
+type CategoryMap = Record<Category, string[]>;
 
 const INITIAL: CategoryMap = {
   general: [],
@@ -21,8 +24,12 @@ interface TagResponse {
 
 export function useTagle() {
   const [value, setValue] = useState("");
-  const [categoryMap, setCategoryMap, hydrated] = useLocalStorage<CategoryMap>("tags", INITIAL);
-  const [selectedTags, setSelectedtags] = useState([]);
+  const [categoryMap, setCategoryMap] = useLocalStorage<CategoryMap>("tags", INITIAL);
+  const [queries, setQueries] = useLocalStorage<string[][]>("queries", [] as string[][]);
+  const [selectedTags, setSelectedtags] = useState<string[]>([]);
+  const [exclude, setExclude] = useState(false);
+
+  const hydrated = useHydrated();
 
   const handleSubmit = async () => {
     if (!value) return;
@@ -41,6 +48,32 @@ export function useTagle() {
     setValue("");
   };
 
+  const handleExclude = () => {
+    setExclude(!exclude);
+  };
+
+  const handleTagClick = (tagName: string) => {
+    if (selectedTags.includes(tagName)) return;
+    const tag = exclude ? `-${tagName}` : tagName;
+    setSelectedtags((prev) => [...prev, tag]);
+  };
+
+  const handleTagDblClick = (category: Category, tagName: string) => {
+    setCategoryMap({
+      ...categoryMap,
+      [category]: categoryMap[category].filter((tag) => tag !== tagName),
+    });
+  };
+
+  const handleSearchTagClick = (tagName: string) => {
+    setSelectedtags((prev) => prev.filter((tag) => tag !== tagName));
+  };
+
+  const handleSave = () => {
+    if (selectedTags.length === 0) return;
+    setQueries([selectedTags, ...queries]);
+  };
+
   return {
     value,
     setValue,
@@ -50,5 +83,10 @@ export function useTagle() {
     selectedTags,
     setSelectedtags,
     handleSubmit,
+    handleExclude,
+    handleTagClick,
+    handleTagDblClick,
+    handleSearchTagClick,
+    handleSave,
   };
 }
