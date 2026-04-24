@@ -9,7 +9,13 @@ interface TagSectionProps {
   tagOnDblClick?: (arg0: Category, arg1: string) => void;
 }
 
-export default function TagSection({ name, tags, query, tagOnClick, tagOnDblClick }: TagSectionProps) {
+export default function TagSection({
+  name,
+  tags,
+  query,
+  tagOnClick,
+  tagOnDblClick,
+}: TagSectionProps) {
   if (query) {
     return (
       <div className="flex flex-wrap gap-2">
@@ -24,7 +30,14 @@ export default function TagSection({ name, tags, query, tagOnClick, tagOnDblClic
       <h3 className="">{name}</h3>
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => (
-          <Tag key={tag} name={tag} type={"category"} category={name!.toLowerCase() as Category} tagOnClick={tagOnClick} tagOnDblClick={tagOnDblClick} />
+          <Tag
+            key={tag}
+            name={tag}
+            type={"category"}
+            category={name!.toLowerCase() as Category}
+            tagOnClick={tagOnClick}
+            tagOnDblClick={tagOnDblClick}
+          />
         ))}
       </div>
     </div>

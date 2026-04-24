@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { useHydrated } from "./useHydrated";
+import { env } from "@/utils/env";
 
 const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"] as const;
 
@@ -22,8 +23,9 @@ interface TagResponse {
   name: string;
 }
 
-export function tagleRedirect() {
-  
+export function tagleRedirect(tags: string[]) {
+  const tagQuery = tags ? tags.map(encodeURIComponent).join("+") : "all";
+  window.open(`https://${env.apiUrl}/index.php?page=post&s=list&tags=${tagQuery}`, "_blank");
 }
 
 export function useTagle() {
@@ -52,6 +54,8 @@ export function useTagle() {
     setValue("");
   };
 
+  const handleAutocomplete = async () => {};
+
   const handleExclude = () => {
     setExclude(!exclude);
   };
@@ -76,6 +80,10 @@ export function useTagle() {
   const handleSave = () => {
     if (selectedTags.length === 0) return;
     setQueries([selectedTags, ...queries]);
+  };
+
+  const handleSearch = () => {
+    tagleRedirect(selectedTags);
   };
 
   return {
