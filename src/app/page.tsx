@@ -2,8 +2,6 @@
 
 import TagSection from "@/components/TagSection";
 import Tag from "@/components/Tag";
-import { useState } from "react";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTagle } from "@/hooks/useTagle";
 
 export default function Home() {
@@ -16,6 +14,11 @@ export default function Home() {
     selectedTags,
     setSelectedtags,
     handleSubmit,
+    handleExclude,
+    handleTagClick,
+    handleTagDblClick,
+    handleSearchTagClick,
+    handleSave,
   } = useTagle();
 
   return (
@@ -35,29 +38,38 @@ export default function Home() {
           />
           <div className="flex flex-wrap gap-2 rounded border p-2">
             {selectedTags.length > 0 ? (
-              selectedTags.map((tag) => <Tag key={tag} name={tag} disabled={true} />)
+              selectedTags.map((tag) => <Tag key={tag} name={tag} type={"search"} tagOnClick={handleSearchTagClick} />)
             ) : (
               <span className="text-gray-400">Selected tags will appear here</span>
             )}
           </div>
           <div className="flex gap-4">
-            <button className="grow">Save</button>
+            <button 
+              className="grow"
+              onClick={(e) => handleSave()}
+            >Save</button>
             <button className="grow-4">Go</button>
           </div>
-          <button className="">Exclude</button>
+          <button 
+            className=""
+            onClick={(e) => handleExclude()}
+          >Exclude</button>
         </div>
         <div className="grid grow-4 grid-cols-3 gap-4">
           {hydrated && (
             <>
-              <TagSection name="Copyright" tags={categoryMap.copyright} query={false} />
-              <TagSection name="Characters" tags={categoryMap.characters} query={false} />
-              <TagSection name="Artists" tags={categoryMap.artists} query={false} />
-              <TagSection name="General" tags={categoryMap.general} query={false} />
-              <TagSection name="Meta" tags={categoryMap.meta} query={false} />
-              <TagSection name="Other" tags={categoryMap.other} query={false} />
+              <TagSection name="Copyright" tags={categoryMap.copyright} query={false} tagOnClick={handleTagClick} tagOnDblClick={handleTagDblClick} />
+              <TagSection name="Characters" tags={categoryMap.characters} query={false} tagOnClick={handleTagClick} tagOnDblClick={handleTagDblClick} />
+              <TagSection name="Artists" tags={categoryMap.artists} query={false} tagOnClick={handleTagClick} tagOnDblClick={handleTagDblClick} />
+              <TagSection name="General" tags={categoryMap.general} query={false} tagOnClick={handleTagClick} tagOnDblClick={handleTagDblClick} />
+              <TagSection name="Meta" tags={categoryMap.meta} query={false} tagOnClick={handleTagClick} tagOnDblClick={handleTagDblClick} />
+              <TagSection name="Other" tags={categoryMap.other} query={false} tagOnClick={handleTagClick} tagOnDblClick={handleTagDblClick} />
             </>
           )}
         </div>
+      </div>
+      <div className="">
+        
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useHydrated } from "./useHydrated";
 
 const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"] as const;
 
-type Category = (typeof CATEGORIES)[number];
+export type Category = (typeof CATEGORIES)[number];
 
 type CategoryMap = Record<Category, string[]>;
 
@@ -20,6 +20,10 @@ const INITIAL: CategoryMap = {
 interface TagResponse {
   type: number;
   name: string;
+}
+
+export function tagleRedirect() {
+  
 }
 
 export function useTagle() {
