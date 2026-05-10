@@ -100,5 +100,6 @@ export function useTagle() {
     handleTagDblClick,
     handleSearchTagClick,
     handleSave,
+    handleSearch,
   };
 }

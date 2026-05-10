@@ -19,6 +19,7 @@ export default function Home() {
     handleTagDblClick,
     handleSearchTagClick,
     handleSave,
+    handleSearch,
   } = useTagle();
 
   return (
@@ -49,7 +50,7 @@ export default function Home() {
             <button className="grow" onClick={(e) => handleSave()}>
               Save
             </button>
-            <button className="grow-4">Go</button>
+            <button className="grow-4" onClick={(e) => handleSearch()}>Go</button>
           </div>
           <button className="" onClick={(e) => handleExclude()}>
             Exclude

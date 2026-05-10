@@ -5,7 +5,7 @@ function require(key: string): string {
 }
 
 export const env = {
-  apiUrl: require("API_URL"),
-  apiKey: require("API_KEY"),
-  userId: require("USER_ID"),
+  get apiUrl() { return require("API_URL"); },
+  get apiKey() { return require("API_KEY"); },
+  get userId() { return require("USER_ID"); },
 };
