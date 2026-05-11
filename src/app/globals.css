@@ -1,12 +1,45 @@
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
   font-family: var(--font-sans);
+}
+
+html.dark,
+html.dark body {
+  background-color: #09090b;
+  color: #e4e4e7;
+}
+
+button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
 }
