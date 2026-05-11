@@ -41,6 +41,10 @@ export default function Home() {
     handleCategoryReorder,
   } = useTagle();
 
+  useEffect(() => {
+    setHighlightIdx(suggestions.length > 0 ? 0 : -1);
+  }, [suggestions]);
+
   // ── theme shortcuts ──────────────────────────────────────────────────────
   const d = dark;
 
@@ -109,7 +113,6 @@ export default function Home() {
             onChange={(e) => {
               setValue(e.target.value);
               handleAutocomplete(e.target.value);
-              setHighlightIdx(-1);
             }}
             onBlur={() =>
               setTimeout(() => {
@@ -118,22 +121,20 @@ export default function Home() {
               }, 150)
             }
             onKeyDown={(e) => {
-              if (suggestions.length > 0 && e.key === "Tab") {
+              if (suggestions.length > 0 && (e.key === "Tab" || e.key === "ArrowDown" || e.key === "ArrowUp")) {
                 e.preventDefault();
+                const forward = e.key === "Tab" ? !e.shiftKey : e.key === "ArrowDown";
                 setHighlightIdx((i) =>
-                  e.shiftKey
-                    ? i <= 0
-                      ? suggestions.length - 1
-                      : i - 1
-                    : i >= suggestions.length - 1
-                      ? 0
-                      : i + 1
+                  forward
+                    ? i >= suggestions.length - 1 ? 0 : i + 1
+                    : i <= 0 ? suggestions.length - 1 : i - 1
                 );
               } else if (e.key === "Enter") {
                 const picked = suggestions[highlightIdx];
                 handleSubmit(picked ? picked.value : undefined);
                 setHighlightIdx(-1);
               } else if (e.key === "Escape") {
+                clearSuggestions();
                 setHighlightIdx(-1);
               }
             }}
