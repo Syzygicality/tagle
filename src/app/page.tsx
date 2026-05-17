@@ -310,8 +310,14 @@ export default function Home() {
                     queriesDidDrop.current = false;
                     setQueriesActiveDrag(i);
                   }}
-                  onDragEnter={() => {
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
                     if (queriesDragSrc.current === null || queriesDragSrc.current === i) return;
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (queriesDragSrc.current < i && e.clientY < midY) return;
+                    if (queriesDragSrc.current > i && e.clientY > midY) return;
                     const next = [...displayQueries];
                     const [item] = next.splice(queriesDragSrc.current, 1);
                     next.splice(i, 0, item);
@@ -319,7 +325,6 @@ export default function Home() {
                     setQueriesActiveDrag(i);
                     setDisplayQueries(next);
                   }}
-                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                   onDrop={() => {
                     if (queriesOriginalSrc.current === null || queriesDragSrc.current === null) return;
                     queriesDidDrop.current = true;

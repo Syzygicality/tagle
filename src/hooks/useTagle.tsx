@@ -142,7 +142,7 @@ export function useTagle() {
 
   const handleSave = () => {
     if (selectedTags.length === 0) return;
-    setQueries([selectedTags, ...queries]);
+    setQueries([...queries, selectedTags]);
   };
 
   const handleSearch = (queryTags?: string[]) => {

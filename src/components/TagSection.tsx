@@ -95,9 +95,6 @@ export default function TagSection({
             name={tag}
             type="query"
             dark={dark}
-            index={i}
-            onDragStart={onReorder ? handleDragStart : undefined}
-            onDrop={onReorder ? handleDrop : undefined}
           />
         ))}
       </div>
