@@ -61,9 +61,9 @@ export default function Home() {
       if (document.activeElement === inputRef.current) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "s") handleSave();
-      else if (e.key === "g") handleSearch();
+      else if (e.key === "Enter") handleSearch();
       else if (e.key === "c") setSelectedtags([]);
-      else if (e.key === "e") handleExclude();
+      else if (e.key === " ") { e.preventDefault(); handleExclude(); }
       else if (e.key === "r") handleRemoveMode();
     };
     window.addEventListener("keydown", handler);
@@ -221,7 +221,7 @@ export default function Home() {
             className="flex flex-1 items-center justify-between rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-500"
             onClick={() => handleSearch()}
           >
-            Go → <kbd className="rounded border border-blue-400/60 bg-blue-500/60 px-1 py-0.5 font-mono text-[10px] text-blue-200">g</kbd>
+            Go → <kbd className="rounded border border-blue-400/60 bg-blue-500/60 px-1 py-0.5 font-mono text-[10px] text-blue-200">↵</kbd>
           </button>
         </div>
         <button
@@ -234,7 +234,7 @@ export default function Home() {
           className={`flex items-center justify-between rounded-md border px-3 py-1.5 text-sm transition-colors ${excludeCls}`}
           onClick={handleExclude}
         >
-          {exclude ? "Exclude mode on" : "Exclude mode"} <kbd className={kbdCls}>e</kbd>
+          {exclude ? "Exclude mode on" : "Exclude mode"} <kbd className={kbdCls}>space</kbd>
         </button>
         <button
           className={`flex items-center justify-between rounded-md border px-3 py-1.5 text-sm transition-colors ${removeCls}`}

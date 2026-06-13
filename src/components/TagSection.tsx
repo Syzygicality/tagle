@@ -87,8 +87,8 @@ export default function TagSection({
 
   if (query) {
     const cardClass = dark
-      ? "flex flex-wrap gap-1.5 rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-3 transition-colors hover:border-zinc-700/80 hover:bg-zinc-800/40"
-      : "flex flex-wrap gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:border-gray-300 hover:bg-gray-100/60";
+      ? "flex flex-wrap gap-1.5 rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-2 transition-colors hover:border-zinc-700/80 hover:bg-zinc-800/40 cursor-pointer"
+      : "flex flex-wrap gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-2 transition-colors hover:border-gray-300 hover:bg-gray-100/60 cursor-pointer";
     return (
       <div
         className={cardClass}
