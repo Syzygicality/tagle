@@ -35,6 +35,11 @@ function decodeHtml(html: string) {
   return txt.value;
 }
 
+/** The session expired mid-use; the proxy will hand back a login page. */
+function toLogin() {
+  window.location.href = "/login";
+}
+
 export function tagleRedirect(tags: string[]) {
   const tagQuery = tags.length > 0 ? tags.map((t) => encodeURIComponent(decodeHtml(t))).join("+") : "all";
   window.open(`/api/search?tags=${tagQuery}`, "_blank");
@@ -67,6 +72,7 @@ export function useTagle() {
     }
 
     const res = await fetch(`/api/tag?name=${encodeURIComponent(tag)}`);
+    if (res.status === 401) return toLogin();
 
     const data = (await res.json()) as TagResponse;
     const category = CATEGORIES[data.type] || "other";
@@ -95,6 +101,7 @@ export function useTagle() {
         const res = await fetch(`/api/autocomplete?search=${encodeURIComponent(search)}`, {
           signal: controller.signal,
         });
+        if (res.status === 401) return toLogin();
         const data = (await res.json()) as AutocompleteItem[];
         setSuggestions(data.sort((a, b) => (b.count ?? 0) - (a.count ?? 0)).slice(0, 6));
       } catch {
