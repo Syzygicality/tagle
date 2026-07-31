@@ -2,12 +2,12 @@ import { useState, useRef } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { useHydrated } from "./useHydrated";
 
-const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"] as const;
+export const CATEGORIES = ["general", "artists", "other", "copyright", "characters", "meta"] as const;
 const OPERATOR_TAGS = new Set(["(", "~", ")"]);
 
 export type Category = (typeof CATEGORIES)[number];
 
-type CategoryMap = Record<Category, string[]>;
+export type CategoryMap = Record<Category, string[]>;
 
 const INITIAL: CategoryMap = {
   general: [],
@@ -174,6 +174,7 @@ export function useTagle() {
     setCategoryMap,
     hydrated,
     queries,
+    setQueries,
     selectedTags,
     setSelectedtags,
     suggestions,

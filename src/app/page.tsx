@@ -7,6 +7,7 @@ import TagSection from "@/components/TagSection";
 import Tag from "@/components/Tag";
 import { useTagle } from "@/hooks/useTagle";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { buildBackup, downloadBackup, parseBackup } from "@/utils/backup";
 
 export default function Home() {
   const [dark, setDark] = useLocalStorage("dark", false);
@@ -18,19 +19,23 @@ export default function Home() {
   const [highlightIdx, setHighlightIdx] = useState(-1);
   const [displayQueries, setDisplayQueries] = useState<string[][]>([]);
   const [queriesActiveDrag, setQueriesActiveDrag] = useState<number | null>(null);
+  const [backupStatus, setBackupStatus] = useState<{ ok: boolean; lines: string[] } | null>(null);
   const queriesDragSrc = useRef<number | null>(null);
   const queriesOriginalSrc = useRef<number | null>(null);
   const queriesDidDrop = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const {
     value,
     setValue,
     categoryMap,
+    setCategoryMap,
     hydrated,
     exclude,
     removeMode,
     queries,
+    setQueries,
     selectedTags,
     setSelectedtags,
     suggestions,
@@ -69,6 +74,35 @@ export default function Home() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [handleSave, handleSearch, setSelectedtags, handleExclude, handleRemoveMode]);
+
+  const handleExport = () => {
+    downloadBackup(buildBackup(categoryMap, queries, dark));
+    const tagCount = Object.values(categoryMap).reduce((n, tags) => n + tags.length, 0);
+    setBackupStatus({
+      ok: true,
+      lines: [`Exported ${tagCount} tags and ${queries.length} queries.`],
+    });
+  };
+
+  const handleImport = async (file: File) => {
+    const result = parseBackup(await file.text());
+    if (!result.ok) {
+      setBackupStatus({ ok: false, lines: ["Import failed:", ...result.errors] });
+      return;
+    }
+    setCategoryMap(result.data.tags);
+    setQueries(result.data.queries);
+    setDark(result.data.dark);
+    setSelectedtags([]);
+    const tagCount = Object.values(result.data.tags).reduce((n, tags) => n + tags.length, 0);
+    setBackupStatus({
+      ok: true,
+      lines: [
+        `Imported ${tagCount} tags and ${result.data.queries.length} queries.`,
+        ...result.notes,
+      ],
+    });
+  };
 
   // ── theme shortcuts ──────────────────────────────────────────────────────
   const d = dark;
@@ -115,6 +149,13 @@ export default function Home() {
   const kbdCls = d
     ? "rounded border border-zinc-600 bg-zinc-700 px-1 py-0.5 font-mono text-[10px] text-zinc-400"
     : "rounded border border-gray-300 bg-gray-100 px-1 py-0.5 font-mono text-[10px] text-gray-400";
+  const statusCls = backupStatus?.ok
+    ? d
+      ? "text-emerald-400"
+      : "text-emerald-600"
+    : d
+      ? "text-red-400"
+      : "text-red-600";
 
   return (
     <div className={`flex min-h-screen ${rootCls}`}>
@@ -242,6 +283,44 @@ export default function Home() {
         >
           {removeMode ? "Remove mode on" : "Remove mode"} <kbd className={kbdCls}>r</kbd>
         </button>
+
+        {/* Backup */}
+        <div className="flex gap-2">
+          <button
+            className={`flex-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${clearBtnCls}`}
+            onClick={handleExport}
+            disabled={!hydrated}
+            title="Download tags, saved queries and theme as JSON"
+          >
+            Export
+          </button>
+          <button
+            className={`flex-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${clearBtnCls}`}
+            onClick={() => fileRef.current?.click()}
+            disabled={!hydrated}
+            title="Replace current data with a backup JSON"
+          >
+            Import
+          </button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) handleImport(file);
+          }}
+        />
+        {backupStatus && (
+          <div className={`flex flex-col gap-0.5 text-xs ${statusCls}`}>
+            {backupStatus.lines.map((line, i) => (
+              <span key={i}>{line}</span>
+            ))}
+          </div>
+        )}
       </aside>
 
       {/* Main */}
