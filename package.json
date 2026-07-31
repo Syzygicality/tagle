@@ -18,7 +18,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "audit": "npm audit --omit=dev"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -42,5 +43,13 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.25",
+    "sharp": "^0.35.3",
+    "brace-expansion": "file:patches/brace-expansion"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.11.1": true
   }
 }

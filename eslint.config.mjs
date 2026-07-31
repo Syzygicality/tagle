@@ -19,6 +19,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored upstream dependency patch -- not our code to lint or format.
+    "patches/**",
   ]),
 ]);
 
