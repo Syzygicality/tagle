@@ -16,6 +16,12 @@ html.dark body {
   color: #e4e4e7;
 }
 
+/* Bootstrap's reboot puts a bottom margin on paragraphs; every layout here
+   spaces itself with flex gaps, and the margin knocks flex rows off-centre. */
+p {
+  margin: 0;
+}
+
 button {
   border: none;
   background: none;
