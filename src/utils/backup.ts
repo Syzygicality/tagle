@@ -1,12 +1,18 @@
-import { CATEGORIES, type CategoryMap } from "@/hooks/useTagle";
+import {
+  CATEGORIES,
+  emptyMap,
+  type Category,
+  type CategoryMap,
+  type SavedQuery,
+} from "@/hooks/useTagle";
 
-export const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2;
 
 export interface TagleBackup {
   version: number;
   exportedAt: string;
   tags: CategoryMap;
-  queries: string[][];
+  queries: SavedQuery[];
   dark: boolean;
 }
 
@@ -20,11 +26,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function emptyMap(): CategoryMap {
-  return { general: [], artists: [], other: [], copyright: [], characters: [], meta: [] };
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
 }
 
-export function buildBackup(tags: CategoryMap, queries: string[][], dark: boolean): TagleBackup {
+export function buildBackup(tags: CategoryMap, queries: SavedQuery[], dark: boolean): TagleBackup {
   return {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
@@ -46,9 +52,11 @@ export function downloadBackup(backup: TagleBackup) {
 
 /**
  * Parses a backup file and checks it against everything the app assumes about
- * its own storage: the six known categories, string tags, and string queries.
- * Structural problems are errors; recoverable ones (missing fields, duplicates
- * that would collide as React keys) are normalized and reported as notes.
+ * its own storage: the six known categories, tag objects and saved query
+ * objects. Structural problems are errors; recoverable ones (missing fields,
+ * duplicates that would collide as React keys) are normalized and reported as
+ * notes. Version 1 backups held bare strings and are not convertible, so they
+ * are rejected outright.
  */
 export function parseBackup(text: string): ImportResult {
   let raw: unknown;
@@ -69,11 +77,11 @@ export function parseBackup(text: string): ImportResult {
     errors.push('Missing "version" field.');
   } else if (typeof raw.version !== "number" || !Number.isInteger(raw.version)) {
     errors.push('"version" must be an integer.');
-  } else if (raw.version < 1) {
-    errors.push(`"version" ${raw.version} is not a valid backup version.`);
-  } else if (raw.version > BACKUP_VERSION) {
+  } else if (raw.version === 1) {
+    errors.push("Version 1 backups store tags as plain strings and cannot be imported.");
+  } else if (raw.version !== BACKUP_VERSION) {
     errors.push(
-      `Backup version ${raw.version} is newer than this app supports (${BACKUP_VERSION}).`
+      `Backup version ${raw.version} is not supported (this app reads version ${BACKUP_VERSION}).`
     );
   }
 
@@ -81,7 +89,7 @@ export function parseBackup(text: string): ImportResult {
   if (raw.tags === undefined) {
     errors.push('Missing "tags" field.');
   } else if (!isRecord(raw.tags)) {
-    errors.push('"tags" must be an object mapping categories to arrays of tags.');
+    errors.push('"tags" must be an object mapping categories to arrays of tag objects.');
   } else {
     const categories = raw.tags;
     for (const key of Object.keys(categories)) {
@@ -96,58 +104,137 @@ export function parseBackup(text: string): ImportResult {
         continue;
       }
       if (!Array.isArray(list)) {
-        errors.push(`"tags.${category}" must be an array of strings.`);
+        errors.push(`"tags.${category}" must be an array of tag objects.`);
         continue;
       }
-      const bad = list.findIndex((tag) => typeof tag !== "string" || tag.trim() === "");
-      if (bad !== -1) {
-        errors.push(`"tags.${category}[${bad}]" must be a non-empty string.`);
-        continue;
-      }
+
       const seen = new Set<string>();
-      tags[category] = (list as string[]).filter((tag) => {
-        if (seen.has(tag)) return false;
-        seen.add(tag);
-        return true;
+      let duplicates = 0;
+      let invalid = false;
+
+      list.forEach((entry, i) => {
+        const at = `"tags.${category}[${i}]"`;
+        if (!isRecord(entry)) {
+          errors.push(`${at} must be an object with name, category, count, starred and updated.`);
+          invalid = true;
+          return;
+        }
+        if (!isNonEmptyString(entry.name)) {
+          errors.push(`${at}.name must be a non-empty string.`);
+          invalid = true;
+          return;
+        }
+        if (
+          !isNonEmptyString(entry.category) ||
+          !(CATEGORIES as readonly string[]).includes(entry.category)
+        ) {
+          errors.push(`${at}.category must be one of: ${CATEGORIES.join(", ")}.`);
+          invalid = true;
+          return;
+        }
+        if (entry.category !== category) {
+          errors.push(`${at}.category is "${entry.category}" but it is filed under "${category}".`);
+          invalid = true;
+          return;
+        }
+        if (typeof entry.count !== "number" || !Number.isFinite(entry.count) || entry.count < 0) {
+          errors.push(`${at}.count must be a non-negative number.`);
+          invalid = true;
+          return;
+        }
+        if (typeof entry.starred !== "boolean") {
+          errors.push(`${at}.starred must be true or false.`);
+          invalid = true;
+          return;
+        }
+        if (
+          typeof entry.updated !== "number" ||
+          !Number.isFinite(entry.updated) ||
+          entry.updated < 0
+        ) {
+          errors.push(`${at}.updated must be an epoch timestamp in milliseconds.`);
+          invalid = true;
+          return;
+        }
+        if (seen.has(entry.name)) {
+          duplicates++;
+          return;
+        }
+        seen.add(entry.name);
+        tags[category].push({
+          name: entry.name,
+          category: entry.category as Category,
+          count: entry.count,
+          starred: entry.starred,
+          updated: entry.updated,
+        });
       });
-      const dropped = list.length - tags[category].length;
-      if (dropped > 0) notes.push(`Dropped ${dropped} duplicate tag(s) from "${category}".`);
+
+      if (invalid) tags[category] = [];
+      else if (duplicates > 0)
+        notes.push(`Dropped ${duplicates} duplicate tag(s) from "${category}".`);
+    }
+
+    // A tag filed under two categories would render twice and refresh twice.
+    const across = new Map<string, Category>();
+    for (const category of CATEGORIES) {
+      for (const tag of tags[category]) {
+        const other = across.get(tag.name);
+        if (other) errors.push(`Tag "${tag.name}" appears in both "${other}" and "${category}".`);
+        else across.set(tag.name, category);
+      }
     }
   }
 
-  const queries: string[][] = [];
+  const queries: SavedQuery[] = [];
   if (raw.queries === undefined) {
     notes.push('Field "queries" was missing — imported empty.');
   } else if (!Array.isArray(raw.queries)) {
-    errors.push('"queries" must be an array of tag arrays.');
+    errors.push('"queries" must be an array of saved query objects.');
   } else {
     const seen = new Set<string>();
     let duplicates = 0;
-    raw.queries.forEach((query, i) => {
-      if (!Array.isArray(query)) {
-        errors.push(`"queries[${i}]" must be an array of strings.`);
+    raw.queries.forEach((entry, i) => {
+      const at = `"queries[${i}]"`;
+      if (!isRecord(entry)) {
+        errors.push(`${at} must be an object with name, query and lastInteracted.`);
         return;
       }
-      const bad = query.findIndex((tag) => typeof tag !== "string" || tag.trim() === "");
-      if (bad !== -1) {
-        errors.push(`"queries[${i}][${bad}]" must be a non-empty string.`);
+      if (!isNonEmptyString(entry.name)) {
+        errors.push(`${at}.name must be a non-empty string.`);
         return;
       }
-      if (query.length === 0) {
-        notes.push(`Skipped empty query at index ${i}.`);
+      if (!isNonEmptyString(entry.query)) {
+        errors.push(`${at}.query must be a non-empty string.`);
         return;
       }
-      // Saved queries are keyed by their joined tags when rendered, so two
-      // identical queries would collide.
-      const key = (query as string[]).join("\0");
-      if (seen.has(key)) {
+      if (
+        typeof entry.lastInteracted !== "number" ||
+        !Number.isFinite(entry.lastInteracted) ||
+        entry.lastInteracted < 0
+      ) {
+        errors.push(`${at}.lastInteracted must be an epoch timestamp in milliseconds.`);
+        return;
+      }
+      // Written since the score toggle landed; older backups simply lack it.
+      if (entry.sortByScore !== undefined && typeof entry.sortByScore !== "boolean") {
+        errors.push(`${at}.sortByScore must be true or false.`);
+        return;
+      }
+      // Saved queries are keyed by name when rendered, so two would collide.
+      if (seen.has(entry.name)) {
         duplicates++;
         return;
       }
-      seen.add(key);
-      queries.push(query as string[]);
+      seen.add(entry.name);
+      queries.push({
+        name: entry.name,
+        query: entry.query.trim(),
+        lastInteracted: entry.lastInteracted,
+        sortByScore: entry.sortByScore === true,
+      });
     });
-    if (duplicates > 0) notes.push(`Dropped ${duplicates} duplicate saved quer(y/ies).`);
+    if (duplicates > 0) notes.push(`Dropped ${duplicates} saved quer(y/ies) with a repeated name.`);
   }
 
   let dark = false;

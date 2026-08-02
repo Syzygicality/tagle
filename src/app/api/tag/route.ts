@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     let data = parser.parse(xml);
     data = data["tags"]["tag"][0];
     data["type"] = parseInt(data["type"]);
+    data["count"] = Number.isFinite(Number(data["count"])) ? Number(data["count"]) : 0;
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });

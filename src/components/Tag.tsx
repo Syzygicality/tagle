@@ -1,111 +1,101 @@
-import { Category } from "@/hooks/useTagle";
+import { Category, TagEntry } from "@/hooks/useTagle";
 import { decodeHtml } from "@/utils/decodeHtml";
 
 const lightCategory: Record<Category, string> = {
-  copyright:
-    "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:border-purple-300",
-  characters:
-    "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300",
-  artists: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300",
-  general: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-300",
-  meta: "border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 hover:border-yellow-300",
-  other: "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300",
+  copyright: "text-purple-700 hover:text-purple-900",
+  characters: "text-green-700 hover:text-green-900",
+  artists: "text-red-700 hover:text-red-900",
+  general: "text-sky-700 hover:text-sky-900",
+  meta: "text-yellow-700 hover:text-yellow-900",
+  other: "text-gray-600 hover:text-gray-900",
 };
 
 const darkCategory: Record<Category, string> = {
-  copyright:
-    "border-purple-800/60 bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 hover:border-purple-700/80",
-  characters:
-    "border-green-800/60 bg-green-950/40 text-green-300 hover:bg-green-900/50 hover:border-green-700/80",
-  artists:
-    "border-red-800/60 bg-red-950/40 text-red-300 hover:bg-red-900/50 hover:border-red-700/80",
-  general:
-    "border-sky-800/60 bg-sky-950/40 text-sky-300 hover:bg-sky-900/50 hover:border-sky-700/80",
-  meta: "border-yellow-800/60 bg-yellow-950/40 text-yellow-300 hover:bg-yellow-900/50 hover:border-yellow-700/80",
-  other:
-    "border-zinc-700/60 bg-zinc-900/60 text-zinc-400 hover:bg-zinc-800/60 hover:border-zinc-600/80",
+  copyright: "text-purple-300 hover:text-purple-200",
+  characters: "text-green-300 hover:text-green-200",
+  artists: "text-red-300 hover:text-red-200",
+  general: "text-sky-300 hover:text-sky-200",
+  meta: "text-yellow-300 hover:text-yellow-200",
+  other: "text-zinc-400 hover:text-zinc-200",
 };
 
-const pill =
-  "inline-flex items-center rounded-full border px-2 py-1 font-mono text-xs leading-none transition-colors";
-
-interface TagProps {
-  name: string;
-  type: "category" | "search" | "query";
-  dark?: boolean;
-  category?: Category;
-  tagOnClick?: (name: string, category?: Category) => void;
-  tagOnContextMenu?: (name: string, category?: Category) => void;
-  dim?: boolean;
-  index?: number;
-  onDragStart?: (index: number) => void;
-  onDragEnter?: (index: number) => void;
-  onDrop?: (index: number) => void;
-  onDragEnd?: () => void;
+function compactCount(count: number) {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${count}`;
 }
 
+interface TagProps {
+  tag: TagEntry;
+  dark?: boolean;
+  onClick: (name: string) => void;
+  onDelete: (name: string) => void;
+  onStar: (name: string) => void;
+  onRedirect: (name: string) => void;
+}
+
+/**
+ * One row of a tag list. The name reads as a link and adds the tag to the
+ * query; the star, redirect and delete controls stay hidden until hover.
+ * Long names are clipped rather than wrapped so the rows stay aligned.
+ */
 export default function Tag({
-  name,
-  type,
+  tag,
   dark = false,
-  category,
-  tagOnClick,
-  tagOnContextMenu,
-  dim = false,
-  index,
-  onDragStart,
-  onDragEnter,
-  onDrop,
-  onDragEnd,
+  onClick,
+  onDelete,
+  onStar,
+  onRedirect,
 }: TagProps) {
-  const dragProps = onDragStart
-    ? {
-        draggable: true as const,
-        onDragStart: (e: React.DragEvent) => { e.dataTransfer.effectAllowed = "move"; onDragStart(index!); },
-        onDragEnter: (e: React.DragEvent) => { e.preventDefault(); onDragEnter?.(index!); },
-        onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; },
-        onDrop: () => onDrop?.(index!),
-        onDragEnd: () => onDragEnd?.(),
-      }
-    : {};
+  const colors = dark ? darkCategory[tag.category] : lightCategory[tag.category];
+  const actionCls = dark
+    ? "text-zinc-500 hover:text-zinc-100"
+    : "text-gray-400 hover:text-gray-900";
+  const countCls = dark ? "text-zinc-600" : "text-gray-400";
+  const name = decodeHtml(tag.name);
 
-  if (type === "category") {
-    const colors = dark ? darkCategory[category!] : lightCategory[category!];
-    return (
-      <button
-        className={`${pill} ${colors} cursor-pointer transition-opacity ${onDragStart ? "cursor-grab active:cursor-grabbing" : ""} ${dim ? "opacity-30" : ""}`}
-        onClick={() => tagOnClick!(name, category)}
-        onContextMenu={tagOnContextMenu ? (e) => { e.preventDefault(); tagOnContextMenu(name, category); } : undefined}
-        {...dragProps}
-      >
-        {decodeHtml(name)}
-      </button>
-    );
-  }
+  const stop = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
 
-  if (type === "search") {
-    const colors = dark
-      ? "border-zinc-600/60 bg-zinc-800/60 text-zinc-200 hover:border-red-800/60 hover:bg-red-950/40 hover:text-red-300"
-      : "border-gray-300 bg-gray-100 text-gray-700 hover:border-red-300 hover:bg-red-50 hover:text-red-600";
-    return (
-      <button
-        className={`${pill} cursor-pointer ${colors}`}
-        onClick={() => tagOnClick!(name)}
-      >
-        {decodeHtml(name)}
-      </button>
-    );
-  }
-
-  const colors = dark
-    ? "border-zinc-700/50 bg-zinc-900/50 text-zinc-400"
-    : "border-gray-200 bg-gray-100 text-gray-400";
   return (
-    <button
-      className={`${pill} ${colors} ${onDragStart ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
-      {...dragProps}
-    >
-      {decodeHtml(name)}
-    </button>
+    <span className="group flex min-w-0 items-center gap-1.5 font-mono text-xs leading-6">
+      <button
+        className={`block min-w-0 flex-1 truncate text-left underline-offset-2 transition-colors hover:underline ${colors}`}
+        title={name}
+        onClick={() => onClick(tag.name)}
+      >
+        {name}
+      </button>
+
+      {tag.starred && <span className="shrink-0 text-amber-400 group-hover:hidden">★</span>}
+
+      <span className="hidden shrink-0 items-center gap-1 group-hover:inline-flex">
+        <button
+          className={`cursor-pointer ${tag.starred ? "text-amber-400" : actionCls}`}
+          title={tag.starred ? "Unstar" : "Star"}
+          onClick={stop(() => onStar(tag.name))}
+        >
+          {tag.starred ? "★" : "☆"}
+        </button>
+        <button
+          className={`cursor-pointer ${actionCls}`}
+          title="Search this tag"
+          onClick={stop(() => onRedirect(tag.name))}
+        >
+          ↗
+        </button>
+        <button
+          className={`cursor-pointer ${actionCls} hover:text-red-500`}
+          title="Delete tag"
+          onClick={stop(() => onDelete(tag.name))}
+        >
+          ✕
+        </button>
+      </span>
+
+      <span className={`shrink-0 tabular-nums ${countCls}`}>{compactCount(tag.count)}</span>
+    </span>
   );
 }
