@@ -39,7 +39,7 @@ export default function Home() {
   const [pendingDelete, setPendingDelete] = useState<Pending>(null);
   const [savePrompt, setSavePrompt] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const queryRef = useRef<HTMLInputElement>(null);
+  const queryRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -113,6 +113,16 @@ export default function Home() {
     setSeenFragment(fragment);
     setQueryHighlight(-1);
   }
+
+  // A textarea holds whatever height it was given, so remeasure it on every
+  // change — tag clicks and loading a saved query rewrite the box too.
+  useEffect(() => {
+    const box = queryRef.current;
+    if (!box) return;
+    box.style.height = "auto";
+    // scrollHeight stops at the padding edge; the border is on top of that.
+    box.style.height = `${box.scrollHeight + box.offsetHeight - box.clientHeight}px`;
+  }, [query]);
 
   const applyQueryMatch = (name: string) => {
     const prefix = fragment.slice(0, fragment.length - fragment.replace(/^[-~]+/, "").length);
@@ -318,13 +328,14 @@ export default function Home() {
                 </>
               )}
             </div>
-            <input
+            <textarea
               ref={queryRef}
-              type="text"
+              rows={1}
               placeholder="tag_a -tag_b ( tag_c ~ tag_d )"
-              className={`w-full border px-3 py-2 font-mono text-xs transition-colors outline-none focus:ring-1 ${inputCls}`}
+              className={`block w-full resize-none overflow-hidden border px-3 py-2 font-mono text-xs transition-colors outline-none focus:ring-1 ${inputCls}`}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              // Pasted line breaks would fuse tokens the parser splits on spaces.
+              onChange={(e) => setQuery(e.target.value.replace(/\s*\n\s*/g, " "))}
               onKeyDown={(e) => {
                 if (
                   queryMatches.length > 0 &&
