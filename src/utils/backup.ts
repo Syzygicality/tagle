@@ -5,6 +5,7 @@ import {
   type CategoryMap,
   type SavedQuery,
 } from "@/hooks/useTagle";
+import { decodeHtml } from "./decodeHtml";
 
 export const BACKUP_VERSION = 2;
 
@@ -156,13 +157,16 @@ export function parseBackup(text: string): ImportResult {
           invalid = true;
           return;
         }
-        if (seen.has(entry.name)) {
+        // Backups written before names were stored decoded hold the escaped
+        // form ("d&#039;arce"); normalize so they match what the app stores.
+        const name = decodeHtml(entry.name);
+        if (seen.has(name)) {
           duplicates++;
           return;
         }
-        seen.add(entry.name);
+        seen.add(name);
         tags[category].push({
-          name: entry.name,
+          name,
           category: entry.category as Category,
           count: entry.count,
           starred: entry.starred,
@@ -229,7 +233,7 @@ export function parseBackup(text: string): ImportResult {
       seen.add(entry.name);
       queries.push({
         name: entry.name,
-        query: entry.query.trim(),
+        query: decodeHtml(entry.query.trim()),
         lastInteracted: entry.lastInteracted,
         sortByScore: entry.sortByScore === true,
       });

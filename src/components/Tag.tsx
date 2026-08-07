@@ -95,7 +95,10 @@ export default function Tag({
         </button>
       </span>
 
-      <span className={`shrink-0 tabular-nums ${countCls}`}>{compactCount(tag.count)}</span>
+      {/* "other" counts are never refreshed, so there is nothing worth showing. */}
+      {tag.category !== "other" && (
+        <span className={`shrink-0 tabular-nums ${countCls}`}>{compactCount(tag.count)}</span>
+      )}
     </span>
   );
 }

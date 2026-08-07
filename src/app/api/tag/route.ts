@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
     data["count"] = Number.isFinite(Number(data["count"])) ? Number(data["count"]) : 0;
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
+    console.error(
+      `[api/tag] failed for name=${request.nextUrl.searchParams.get("name")}`,
+      error instanceof Error ? (error.stack ?? error.message) : error
+    );
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

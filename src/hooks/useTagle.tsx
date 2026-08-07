@@ -18,10 +18,15 @@ const OPERATOR_TOKENS = new Set(["(", ")", "~"]);
 export const SORT_SCORE = "sort:score";
 
 /** How long a tag's item count is trusted before it is worth re-fetching. */
-export const STALE_MS = 10 * 60 * 1000;
+export const STALE_MS = 30 * 60 * 1000;
 
 /** How often the background refresh sweeps for stale tags. */
 const SWEEP_MS = 60 * 1000;
+
+/** Spacing between count fetches within a sweep, to stay under the upstream rate limit. */
+const THROTTLE_MS = 1000;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export type Category = (typeof CATEGORIES)[number];
 
@@ -197,13 +202,22 @@ export function useTagle() {
       refreshing.current = true;
       try {
         let forced = new Set(force);
+        let firstFetch = true;
         for (;;) {
           const now = Date.now();
           const due = CATEGORIES.flatMap((c) => categoryMapRef.current[c])
+            // "other" holds metatags and the like, whose counts are meaningless
+            // and never shown, so they are worth no upstream calls.
+            .filter((tag) => tag.category !== "other")
             .filter((tag) => forced.has(tag.name) || now - tag.updated >= STALE_MS)
             .sort((a, b) => Number(b.starred) - Number(a.starred));
 
           for (const tag of due) {
+            // Space the calls out; the first one goes straight through so a
+            // freshly searched tag still updates immediately.
+            if (firstFetch) firstFetch = false;
+            else await sleep(THROTTLE_MS);
+
             let data: TagResponse;
             try {
               const res = await fetch(`/api/tag?name=${encodeURIComponent(tag.name)}`);
@@ -246,6 +260,47 @@ export function useTagle() {
     [categoryMapRef, findTag, setCategoryMap]
   );
 
+  // ── stored name normalization ────────────────────────────────────────────
+  /**
+   * Upstream autocomplete hands back HTML-escaped names ("d&#039;arce"), which
+   * earlier versions stored verbatim — so the escaped form leaked into the
+   * query box and never matched a real tag. Names are decoded on the way in
+   * now; this converts whatever was saved before that. Runs before the first
+   * sweep, so refreshes go out under the decoded names.
+   */
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const stored = categoryMapRef.current;
+    const decoded = emptyMap();
+    const seen = new Map<string, TagEntry>();
+    let tagsChanged = false;
+
+    for (const category of CATEGORIES) {
+      for (const tag of stored[category]) {
+        const name = decodeHtml(tag.name);
+        if (name !== tag.name) tagsChanged = true;
+        // Decoding can collapse two saved entries onto one name; keep the
+        // first and carry over the star, since that is the part worth saving.
+        const kept = seen.get(name);
+        if (kept) {
+          if (tag.starred) kept.starred = true;
+          tagsChanged = true;
+          continue;
+        }
+        const entry = { ...tag, name };
+        seen.set(name, entry);
+        decoded[category].push(entry);
+      }
+    }
+    if (tagsChanged) setCategoryMap(decoded);
+
+    const queries = queriesRef.current;
+    if (queries.some((q) => decodeHtml(q.query) !== q.query)) {
+      setQueries(queries.map((q) => ({ ...q, query: decodeHtml(q.query) })));
+    }
+  }, [hydrated, categoryMapRef, queriesRef, setCategoryMap, setQueries]);
+
   useEffect(() => {
     if (!hydrated) return;
     refreshCounts();
@@ -255,7 +310,8 @@ export function useTagle() {
 
   // ── tag management ───────────────────────────────────────────────────────
   const handleSubmit = async (name?: string) => {
-    const tag = (name ?? value).trim();
+    // Autocomplete values arrive HTML-escaped; storage keeps the plain name.
+    const tag = decodeHtml((name ?? value).trim());
     if (!tag) return;
 
     const res = await fetch(`/api/tag?name=${encodeURIComponent(tag)}`);
