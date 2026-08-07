@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/utils/env";
+import { htmlEncode } from "@/utils/htmlEncode";
 
 const MAX_ITEMS = 6;
 
@@ -8,15 +9,6 @@ type AutocompleteItem = {
   label: string;
   value: string;
 };
-
-function htmlEncode(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/'/g, "&#039;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 export async function GET(request: NextRequest) {
   try {
