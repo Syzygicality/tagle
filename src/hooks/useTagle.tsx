@@ -24,7 +24,7 @@ export const STALE_MS = 30 * 60 * 1000;
 const SWEEP_MS = 60 * 1000;
 
 /** Spacing between count fetches within a sweep, to stay under the upstream rate limit. */
-const THROTTLE_MS = 1000;
+const THROTTLE_MS = 1500;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
